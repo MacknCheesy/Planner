@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planner Dashboard</title>
+    
+    <script src="credentials.js"></script>
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
@@ -17,10 +20,8 @@
 
     <script>
         /* ==========================================================================
-           CREDENTIAL CONFIGURATION - SECURED BY ACTIONS INJECTION PIPELINE
+           CREDENTIAL CONFIGURATION - AUTOMATICALLY LOADED FROM CREDENTIALS.JS
            ========================================================================== */
-        const API_KEY = '__API_KEY__'; 
-        const CLIENT_ID = '__CLIENT_ID__';
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
@@ -31,6 +32,7 @@
         // Initialize GAPI Client
         async function gapiStart() {
             try {
+                // API_KEY is automatically available here from credentials.js
                 await gapi.client.init({
                     apiKey: API_KEY,
                     discoveryDocs: [DISCOVERY_DOC],
@@ -48,6 +50,7 @@
 
         // Initialize Google Identity Services (GIS)
         function gisLoaded() {
+            // CLIENT_ID is automatically available here from credentials.js
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
@@ -65,7 +68,6 @@
 
         // Handle the login button click
         function handleAuthClick() {
-            // Force wipe local states to ensure a fresh clean attempt
             localStorage.removeItem('gcal_token');
             gapi.client.setToken(null);
 
@@ -76,7 +78,6 @@
                 listUpcomingEvents();
             };
 
-            // Force the account selection screen to break the corporate cookie auto-login loop
             tokenClient.requestAccessToken({ 
                 prompt: 'select_account',
                 hint: '' 

@@ -325,6 +325,9 @@
     const API_KEY = '__API_KEY__'; 
     const CLIENT_ID = '__CLIENT_ID__';
     
+    // Centralized targets for cross-domain calendar access
+    const TARGET_CALENDAR_ID = 'kenziezenker@kw.com';
+    
     const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
     const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
@@ -408,9 +411,9 @@
             endOfWeek.setDate(endOfWeek.getDate() + 7);
 
             const response = await gapi.client.calendar.events.list({
-                calendarId: 'kenziezenker@kw.com',
+                calendarId: TARGET_CALENDAR_ID,
                 timeMin: startOfWeek.toISOString(),
-                timeMax: endOfWeek.toISOString(),
+                timeMax: startOfWeek.toISOString(),
                 singleEvents: true,
                 orderBy: 'startTime',
             });
@@ -485,7 +488,7 @@
         };
 
         try {
-            await gapi.client.calendar.events.insert({ 'calendarId': 'kenziezenker@kw.com', 'resource': resource });
+            await gapi.client.calendar.events.insert({ 'calendarId': TARGET_CALENDAR_ID, 'resource': resource });
             listUpcomingEvents();
         } catch (error) { console.error(error); }
     }

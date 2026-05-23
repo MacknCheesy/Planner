@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Interactive Planner Dashboard</title>
     <style>
         :root {
-            /* Luxury Color Palette */
             --bg-luxury-cream: #fdfaf6;
             --sidebar-card-bg: #ffffff;
             --border-elegant: #f0e2d9;
@@ -20,11 +18,9 @@
             --soft-terracotta: #e89874;
             --luminous-today: #df5035;
 
-            /* Google Calendar Block Styles */
             --gcal-blue: #e89874;
             --gcal-line: #e0e0e0;
 
-            /* Weekday Heading Soft Tones */
             --mon-h: #f4dcdd; --tue-h: #fcece0; --wed-h: #e3ebd9; 
             --thu-h: #dbeced; --fri-h: #dee4f2; --sat-h: #e6e0f2; --sun-h: #f2dae2;
         }
@@ -38,7 +34,6 @@
             width: 100vw; overflow-x: hidden;
         }
 
-        /* --- CONTROL BAR --- */
         .master-control-bar {
             width: 100%; background: #ffffff;
             border: 1px solid var(--border-elegant); border-radius: 6px;
@@ -61,7 +56,6 @@
         }
         .btn-luxury-action:hover { background-color: var(--pastel-orange-light); border-color: var(--header-dark-orange); }
 
-        /* --- QUICK ADD PRIORITIES MODAL POPUP --- */
         .quick-add-modal {
             display: none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
             background-color: #ffffff; border: 1px solid var(--header-dark-orange);
@@ -73,7 +67,6 @@
             border-radius: 3px; color: var(--text-main); background-color: #ffffff;
         }
 
-        /* --- MASTER STRUCTURE --- */
         .master-grid-wrapper {
             display: grid; grid-template-columns: 160px 1fr; gap: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px;
         }
@@ -84,7 +77,6 @@
             margin-bottom: 6px; padding-left: 2px; text-align: left;
         }
 
-        /* CALENDAR MODULE */
         .calendar-card { background-color: var(--sidebar-card-bg); border: 1px solid var(--border-elegant); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
         .calendar-header { background-color: var(--header-dark-orange); color: #ffffff; font-weight: 600; font-size: 0.75rem; text-align: center; padding: 6px; text-transform: uppercase; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px; text-align: center; font-size: 0.65rem; gap: 2px; background-color: #fffdfc; }
@@ -93,7 +85,6 @@
         .day-number.faded { color: #decbc2; }
         .day-number.today-highlight { background-color: var(--luminous-today); color: #ffffff !important; font-weight: bold; }
 
-        /* PRIORITIES MODULE */
         .priorities-matrix { background-color: #ffffff; border: 1px solid var(--border-elegant); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; height: auto; }
         .columns-7-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
         .cell-head { font-weight: 600; text-align: center; padding: 6px 2px; font-size: 0.75rem; letter-spacing: 0.04em; border-bottom: 1px solid var(--border-elegant); border-right: 1px solid var(--border-elegant); }
@@ -113,9 +104,6 @@
         .item-row:hover .btn-inline-delete { opacity: 1; }
         .btn-inline-delete:hover { color: #ff0000; }
 
-        /* ==========================================================================
-           SECTION 2: GOOGLE CALENDAR SCHEDULE SYSTEM (05:00 - 23:30)
-           ========================================================================== */
         .schedule-outer-wrapper {
             display: grid;
             grid-template-columns: 160px 1fr; 
@@ -327,7 +315,11 @@
     </div>
 </div>
 
-/* ==========================================================================
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+<script>
+    /* ==========================================================================
        CREDENTIAL CONFIGURATION - SECURED BY ACTIONS INJECTION PIPELINE
        ========================================================================== */
     const API_KEY = ''; 
@@ -352,13 +344,12 @@
         tokenClient = google.accounts.oauth2.initTokenClient({ 
             client_id: CLIENT_ID, 
             scope: SCOPES, 
-            callback: '', // Will be set dynamically during requests
+            callback: '', 
         }); 
         gisnInited = true; 
         checkAuthStates(); 
     }
     
-    // Check if libraries are loaded and try to restore a saved login session
     function checkAuthStates() { 
         if (gapiInited && gisnInited) { 
             document.getElementById('gcalAuthBtn').style.opacity = '1'; 
@@ -366,19 +357,15 @@
         } 
     }
 
-    // SILENT RESYNC: This checks if you logged in previously and restores it
     function tryToRestoreSession() {
         const savedToken = localStorage.getItem('gcal_token');
         if (savedToken) {
             const tokenObj = JSON.parse(savedToken);
-            
-            // Check if the saved token is still valid or needs automatic refresh
             if (Date.now() < tokenObj.expires_at) {
                 gapi.client.setToken(tokenObj);
                 document.getElementById('gcalAuthBtn').innerText = "Syncing...";
                 listUpcomingEvents();
             } else {
-                // Token expired, silently request a new one without a prompt modal
                 tokenClient.callback = async (resp) => {
                     if (resp.error === undefined) {
                         saveTokenWithExpiry(resp);
@@ -390,15 +377,11 @@
         }
     }
 
-    // Helper to calculate token expiration and save it to browser memory
     function saveTokenWithExpiry(tokenResp) {
         gapi.client.setToken(tokenResp);
         document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
-        
-        // Google tokens usually last 3600 seconds (1 hour)
         const expiryTime = Date.now() + (tokenResp.expires_in * 1000);
         tokenResp.expires_at = expiryTime;
-        
         localStorage.setItem('gcal_token', JSON.stringify(tokenResp));
     }
 
@@ -409,7 +392,6 @@
             listUpcomingEvents();
         };
         
-        // Only forces account selection if you haven't logged in yet
         if (gapi.client.getToken() === null) {
             tokenClient.requestAccessToken({prompt: 'select_account consent'});
         } else {
@@ -452,7 +434,6 @@
             document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
         } catch (err) { 
             console.error(err); 
-            // If the request fails due to an expired session, clear token and try resetting
             if (err.status === 401) {
                 localStorage.removeItem('gcal_token');
                 document.getElementById('gcalAuthBtn').innerText = "Sync Google Calendar";
@@ -509,7 +490,6 @@
         } catch (error) { console.error(error); }
     }
 
-    /* --- PRIORITIES LOGIC --- */
     function toggleQuickAddModal() { const m = document.getElementById('quickAddForm'); m.style.display = m.style.display==='flex'?'none':'flex'; if(m.style.display==='flex') document.getElementById('itemTextInput').focus(); }
     function handleInputKeyPress(e) { if(e.key==='Enter'){ e.preventDefault(); executePriorityInjection(); } }
     function executePriorityInjection() {

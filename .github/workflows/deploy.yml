@@ -1,27 +1,7 @@
-name: Secure Deploy Pipeline
-
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: write
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Inject Secure Keys from Repository Secrets
+- name: Inject Secure Keys Silently
+        env:
+          REAL_API_KEY: ${{ secrets.GCAL_API_KEY }}
+          REAL_CLIENT_ID: ${{ secrets.GCAL_CLIENT_ID }}
         run: |
-          sed -i "s|__API_KEY__|${{ secrets.GCAL_API_KEY }}|g" index.html
-          sed -i "s|__CLIENT_ID__|${{ secrets.GCAL_CLIENT_ID }}|g" index.html
-
-      - name: Deploy Clean Site to GitHub Pages Branch
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: .
-          branch: gh-pages
+          sed -i "s|__API_KEY__|$REAL_API_KEY|g" index.html
+          sed -i "s|__CLIENT_ID__|$REAL_CLIENT_ID|g" index.html

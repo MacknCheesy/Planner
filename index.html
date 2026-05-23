@@ -3,205 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planner Dashboard</title>
+    <title>Dynamic Interactive Planner Dashboard</title>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
     <script src="credentials.js"></script>
-    
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js" async defer></script>
 
     <style>
-        /* Bringing back the custom dashboard look */
         :root {
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-main: #212529;
-            --accent-color: #6c5ce7;
-            --accent-hover: #5b4bc4;
-            --border-radius: 16px;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            --bg-luxury-cream: #fdfaf6;
+            --sidebar-card-bg: #ffffff;
+            --border-elegant: #f0e2d9;
+            --text-main: #3d3534;
+            --text-muted: #827572;
+            
+            --header-dark-orange: #d66b37;
+            --pastel-orange-light: #fcece0;
+            --dusty-pink: #f4dcdd;
+            --soft-terracotta: #e89874;
+            --luminous-today: #df5035;
+
+            --gcal-blue: #e89874;
+            --gcal-line: #e0e0e0;
+
+            --mon-h: #f4dcdd; --tue-h: #fcece0; --wed-h: #e3ebd9; 
+            --thu-h: #dbeced; --fri-h: #dee4f2; --sat-h: #e6e0f2; --sun-h: #f2dae2;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-luxury-cream);
             color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            margin: 0; padding: 12px;
+            box-sizing: border-box; font-size: 0.8rem;
+            width: 100vw; overflow-x: hidden;
         }
 
-        .container {
-            background: var(--card-bg);
-            padding: 2.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
+        .master-control-bar {
+            width: 100%; background: #ffffff;
+            border: 1px solid var(--border-elegant); border-radius: 6px;
+            padding: 8px 14px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02); box-sizing: border-box;
+        }
+
+        .branding-title {
+            font-weight: 700; text-transform: uppercase; 
+            letter-spacing: 0.08em; color: var(--header-dark-orange); font-size: 0.9rem;
+        }
+
+        .btn-luxury-action {
+            background-color: transparent; border: 1px solid var(--soft-terracotta);
+            color: var(--header-dark-orange); padding: 4px 10px;
+            font-size: 0.75rem; font-weight: 600; border-radius: 4px;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em;
+            transition: all 0.2s; margin-left: 5px;
+        }
+        .btn-luxury-action:hover { background-color: var(--pastel-orange-light); border-color: var(--header-dark-orange); }
+
+        .quick-add-modal {
+            display: none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+            background-color: #ffffff; border: 1px solid var(--header-dark-orange);
+            border-radius: 6px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000; gap: 8px; align-items: center;
+        }
+        .quick-add-modal select, .quick-add-modal input {
+            font-size: 0.75rem; padding: 3px 6px; border: 1px solid var(--border-elegant);
+            border-radius: 3px; color: var(--text-main); background-color: #ffffff;
+        }
+
+        .master-grid-wrapper {
+            display: grid; grid-template-columns: 160px 1fr; gap: 12px; width: 100%; box-sizing: border-box; margin-bottom: 15px;
+        }
+        .column-group { display: flex; flex-direction: column; }
+        .section-top-label {
+            text-transform: uppercase; font-weight: 800; font-size: 0.75rem;
+            letter-spacing: 0.1em; color: var(--header-dark-orange);
+            margin-bottom: 6px; padding-left: 2px; text-align: left;
+        }
+
+        .calendar-card { background-color: var(--sidebar-card-bg); border: 1px solid var(--border-elegant); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+        .calendar-header { background-color: var(--header-dark-orange); color: #ffffff; font-weight: 600; font-size: 0.75rem; text-align: center; padding: 6px; text-transform: uppercase; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px; text-align: center; font-size: 0.65rem; gap: 2px; background-color: #fffdfc; }
+        .day-label { font-weight: bold; color: var(--header-dark-orange); padding-bottom: 2px; border-bottom: 1px solid var(--border-elegant); }
+        .day-number { padding: 2px 0; border-radius: 3px; }
+        .day-number.faded { color: #decbc2; }
+        .day-number.today-highlight { background-color: var(--luminous-today); color: #ffffff !important; font-weight: bold; }
+
+        .priorities-matrix { background-color: #ffffff; border: 1px solid var(--border-elegant); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; height: auto; }
+        .columns-7-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
+        .cell-head { font-weight: 600; text-align: center; padding: 6px 2px; font-size: 0.75rem; letter-spacing: 0.04em; border-bottom: 1px solid var(--border-elegant); border-right: 1px solid var(--border-elegant); }
+        .cell-head:last-child { border-right: none; }
+        .c-mon { background-color: var(--mon-h); } .c-tue { background-color: var(--tue-h); } .c-wed { background-color: var(--wed-h); } .c-thu { background-color: var(--thu-h); } .c-fri { background-color: var(--fri-h); } .c-sat { background-color: var(--sat-h); } .c-sun { background-color: var(--sun-h); }
+        .day-priority-cell { padding: 6px 6px; border-right: 1px solid var(--border-elegant); background-color: #fffefe; display: flex; flex-direction: column; gap: 5px; align-content: flex-start; box-sizing: border-box; }
+        .day-priority-cell:last-child { border-right: none; }
+        
+        .item-row { display: flex; align-items: center; gap: 5px; width: 100%; position: relative; padding-right: 14px; box-sizing: border-box; }
+        .luxury-circle-checkbox { appearance: none; width: 10px; height: 10px; border: 1px solid var(--soft-terracotta); border-radius: 50%; cursor: pointer; background-color: #ffffff; flex-shrink: 0; display: inline-grid; place-content: center; }
+        .luxury-circle-checkbox:checked { background-color: var(--header-dark-orange); border-color: var(--header-dark-orange); }
+        .luxury-circle-checkbox:checked::before { content: ""; width: 3px; height: 3px; background-color: #ffffff; border-radius: 50%; }
+        .luxury-circle-checkbox:checked + .priority-entry-input { text-decoration: line-through; opacity: 0.4; }
+        .priority-entry-input { width: 100%; border: none; background: transparent; font-family: inherit; font-size: 0.75rem; color: var(--text-main); padding: 0; }
+        .priority-entry-input:focus { outline: none; border-bottom: 1px dashed var(--soft-terracotta); }
+        .btn-inline-delete { position: absolute; right: 0px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #b84d43; font-size: 0.85rem; font-weight: bold; cursor: pointer; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity 0.15s; }
+        .item-row:hover .btn-inline-delete { opacity: 1; }
+        .btn-inline-delete:hover { color: #ff0000; }
+
+        .schedule-outer-wrapper {
+            display: grid;
+            grid-template-columns: 160px 1fr; 
+            gap: 12px;
             width: 100%;
-            max-width: 480px;
-            text-align: center;
             box-sizing: border-box;
         }
 
-        h1 {
-            font-weight: 600;
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            letter-spacing: -0.5px;
+        .habits-tracker-card {
+            background-color: #ffffff;
+            border: 1px solid var(--border-elegant);
+            border-radius: 6px;
+            padding: 12px;
+            box-sizing: border-box;
         }
 
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.8rem;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
+        .habit-item {
+            margin-bottom: 10px;
+        }
+
+        .habit-title {
             font-weight: 600;
-            border-radius: 50px;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .habit-checkboxes {
+            display: flex;
+            gap: 4px;
+        }
+
+        .habit-dot {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--soft-terracotta);
+            border-radius: 50%;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.2);
         }
 
-        button:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        #content {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #f1f2f6;
-            border-radius: 12px;
-            text-align: left;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            max-height: 250px;
+        .schedule-grand-framework {
+            display: grid;
+            grid-template-columns: 60px 1fr; 
+            width: 100%;
+            background-color: #ffffff;
+            border: 1px solid var(--border-elegant);
+            border-radius: 6px;
             overflow-y: auto;
-            border-left: 4px solid var(--accent-color);
+            max-height: 550px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .time-axis-column {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--gcal-line);
+            background-color: var(--bg-luxury-cream);
+            user-select: none;
+        }
+
+        .time-axis-stamp {
+            height: 44px; 
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-align: right;
+            padding-right: 6px;
+            box-sizing: border-box;
+            line-height: 1;
+            padding-top: 4px;
+        }
+
+        .schedule-matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            position: relative;
+            width: 100%;
+        }
+
+        .day-timeline-column {
+            border-right: 1px solid var(--gcal-line);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-image: linear-gradient(var(--gcal-line) 1px, transparent 1px);
+            background-size: 100% 22px; 
+        }
+        .day-timeline-column:last-child { border-right: none; }
+
+        .half-hour-interactive-slot {
+            height: 22px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .half-hour-interactive-slot:hover {
+            background-color: rgba(214, 107, 55, 0.05);
+        }
+
+        .gcal-event-block {
+            position: absolute;
+            left: 2px;
+            right: 4px;
+            background-color: var(--gcal-blue);
+            color: #ffffff;
+            font-size: 0.7rem;
+            padding: 4px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+            border-left: 3px solid var(--header-dark-orange);
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>✨ My Planner Dashboard</h1>
-        <button id="sync_button" onclick="handleAuthClick()">Sync Google Calendar</button>
-        <div id="content" style="white-space: pre-wrap;">Your upcoming schedule will appear here once connected...</div>
+<div class="master-control-bar">
+    <div class="branding-title">Kenzie's Planner</div>
+    <div>
+        <button class="btn-luxury-action" id="gcalAuthBtn" onclick="handleAuthClick()">Sync Google Calendar</button>
+        <button class="btn-luxury-action" onclick="toggleQuickAddModal()">+ Quick Add Priority</button>
+        <button class="btn-luxury-action" style="color: #b84d43; border-color: #ecc9c5;" onclick="resetEverything()">Clear Row</button>
+    </div>
+</div>
+
+<div class="quick-add-modal" id="quickAddForm">
+    <select id="targetDaySelect">
+        <option value="mon">Monday</option> <option value="tue">Tuesday</option> <option value="wed">Wednesday</option>
+        <option value="thu">Thursday</option> <option value="fri">Friday</option> <option value="sat">Saturday</option> <option value="sun">Sunday</option>
+    </select>
+    <input type="text" id="itemTextInput" placeholder="Enter Top Priority..." onkeydown="handleInputKeyPress(event)">
+    <button class="btn-luxury-action" onclick="executePriorityInjection()">Add</button>
+    <button class="btn-luxury-action" style="color:var(--text-muted); border-color:var(--border-elegant);" onclick="toggleQuickAddModal()">Cancel</button>
+</div>
+
+<div class="master-grid-wrapper">
+    <div class="column-group">
+        <div class="section-top-label">Date</div>
+        <div class="calendar-card">
+            <div class="calendar-header" id="calMonthYear">May 2026</div>
+            <div class="calendar-grid" id="calDaysGrid"></div>
+        </div>
     </div>
 
-    <script>
-        /* ==========================================================================
-           CREDENTIAL CONFIGURATION - AUTOMATICALLY LOADED FROM CREDENTIALS.JS
-           ========================================================================== */
-        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-        const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+    <div class="column-group">
+        <div class="section-top-label">Priorities</div>
+        <div class="priorities-matrix">
+            <div class="columns-7-grid">
+                <div class="cell-head c-mon">MON</div> <div class="cell-head c-tue">TUE</div> <div class="cell-head c-wed">WED</div>
+                <div class="cell-head c-thu">THU</div> <div class="cell-head c-fri">FRI</div> <div class="cell-head c-sat">SAT</div> <div class="cell-head c-sun">SUN</div>
+            </div>
+            <div class="columns-7-grid">
+                <script>
+                    ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].forEach(day => {
+                        document.write(`<div class="day-priority-cell" id="cell-${day}"></div>`);
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+</div>
 
-        let tokenClient;
-        let gapiInited = false;
-        let gsiInited = false;
+<div class="schedule-outer-wrapper">
+    <div class="column-group">
+        <div class="section-top-label">Habits</div>
+        <div class="habits-tracker-card">
+            <div class="habit-item">
+                <div class="habit-title">Bright Search Work</div>
+                <div class="habit-checkboxes">
+                    <div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div>
+                </div>
+            </div>
+            <div class="habit-item">
+                <div class="habit-title">Regular Exercise</div>
+                <div class="habit-checkboxes">
+                    <div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div><div class="habit-dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Initialize GAPI Client
-        async function gapiStart() {
-            try {
-                await gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: [DISCOVERY_DOC],
-                });
-                gapiInited = true;
-                maybeEnableButtons();
-            } catch (err) {
-                console.error('Error initializing GAPI:', err);
-            }
-        }
+    <div class="column-group">
+        <div class="section-top-label">Schedule</div>
+        <div class="schedule-grand-framework">
+            <div class="time-axis-column">
+                <script>
+                    for(let hour=5; hour<=23; hour++) {
+                        let displayHour = hour > 12 ? hour - 12 : hour;
+                        let ampm = hour >= 12 ? 'PM' : 'AM';
+                        document.write(`<div class="time-axis-stamp">${displayHour}:00 ${ampm}</div>`);
+                    }
+                </script>
+            </div>
 
-        function gapiLoaded() {
-            gapi.load('client', gapiStart);
-        }
+            <div class="schedule-matrix-grid" id="scheduleGrid">
+                <script>
+                    for(let d=0; d<7; d++) {
+                        document.write(`<div class="day-timeline-column" id="gcal-col-${d}">`);
+                        for(let slot=0; slot<38; slot++) {
+                            document.write(`<div class="half-hour-interactive-slot" onclick="createNewEventViaClick(${d}, ${slot})"></div>`);
+                        }
+                        document.write(`</div>`);
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Initialize Google Identity Services (GIS)
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: '', 
-            });
-            gsiInited = true;
-            maybeEnableButtons();
-        }
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
-        function maybeEnableButtons() {
-            if (gapiInited && gsiInited) {
-                console.log("Google API and Identity Services ready.");
-            }
-        }
+<script>
+    /* ==========================================================================
+       CREDENTIAL CONFIGURATION - SECURED BY ACTIONS INJECTION PIPELINE
+       API_KEY and CLIENT_ID parameters are automatically pulled from credentials.js
+       ========================================================================== */
+    const TARGET_CALENDAR_ID = 'kenziezenker@kw.com';
+    
+    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
-        // Handle the login button click
-        function handleAuthClick() {
-            localStorage.removeItem('gcal_token');
-            gapi.client.setToken(null);
+    let gapiInited = false;
+    let gisnInited = false; 
+    let tokenClient;
 
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) {
-                    throw (resp);
-                }
+    function gapiLoaded() { gapi.load('client', initializeGapiClient); }
+    
+    async function initializeGapiClient() { 
+        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); 
+        gapiInited = true; 
+        checkAuthStates(); 
+    }
+    
+    function gisLoaded() { 
+        tokenClient = google.accounts.oauth2.initTokenClient({ 
+            client_id: CLIENT_ID, 
+            scope: SCOPES, 
+            callback: '', 
+        }); 
+        gisnInited = true; 
+        checkAuthStates(); 
+    }
+    
+    function checkAuthStates() { 
+        if (gapiInited && gisnInited) { 
+            document.getElementById('gcalAuthBtn').style.opacity = '1'; 
+            tryToRestoreSession();
+        } 
+    }
+
+    function tryToRestoreSession() {
+        const savedToken = localStorage.getItem('gcal_token');
+        if (savedToken) {
+            const tokenObj = JSON.parse(savedToken);
+            if (Date.now() < tokenObj.expires_at) {
+                gapi.client.setToken(tokenObj);
+                document.getElementById('gcalAuthBtn').innerText = "Syncing...";
                 listUpcomingEvents();
-            };
-
-            tokenClient.requestAccessToken({ 
-                prompt: 'select_account',
-                hint: '' 
-            });
-        }
-
-        // Fetch calendar events once authenticated
-        async function listUpcomingEvents() {
-            try {
-                const response = await gapi.client.calendar.events.list({
-                    calendarId: 'primary',
-                    timeMin: (new Date()).toISOString(),
-                    showDeleted: false,
-                    singleEvents: true,
-                    maxResults: 10,
-                    orderBy: 'startTime',
-                });
-                
-                const events = response.result.items;
-                if (!events || events.length == 0) {
-                    document.getElementById('content').innerText = 'No upcoming events found.';
-                    return;
-                }
-
-                let output = '📅 Upcoming Events:\n\n';
-                events.forEach((event) => {
-                    const start = event.start.dateTime || event.start.date;
-                    // Format date nicely
-                    const eventDate = new Date(start).toLocaleDateString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-                    output += `• ${eventDate}: ${event.summary}\n`;
-                });
-                document.getElementById('content').innerText = output;
-            } catch (err) {
-                document.getElementById('content').innerText = err.message;
             }
         }
+    }
 
-        // Core initialization hooks
-        window.onload = function () {
-            gapiLoaded();
-            gisLoaded();
+    function saveTokenWithExpiry(tokenResp) {
+        gapi.client.setToken(tokenResp);
+        document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
+        const expiryTime = Date.now() + (tokenResp.expires_in * 1000);
+        tokenResp.expires_at = expiryTime;
+        localStorage.setItem('gcal_token', JSON.stringify(tokenResp));
+    }
+
+    function handleAuthClick() {
+        localStorage.removeItem('gcal_token');
+        gapi.client.setToken(null);
+
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) throw (resp);
+            saveTokenWithExpiry(resp);
+            listUpcomingEvents();
         };
-    </script>
+        
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+    }
+
+    async function listUpcomingEvents() {
+        try {
+            const today = new Date();
+            const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+            startOfWeek.setHours(0,0,0,0);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+            const response = await gapi.client.calendar.events.list({
+                calendarId: TARGET_CALENDAR_ID,
+                timeMin: startOfWeek.toISOString(),
+                timeMax: endOfWeek.toISOString(),
+                singleEvents: true,
+                orderBy: 'startTime',
+            });
+
+            const events = response.result.items;
+            document.querySelectorAll('.gcal-event-block').forEach(el => el.remove());
+
+            events.forEach(event => {
+                const startStr = event.start.dateTime || event.start.date;
+                const endStr = event.end.dateTime || event.end.date;
+                const startTime = new Date(startStr);
+                const endTime = new Date(endStr);
+                
+                let dayIndex = startTime.getDay() - 1;
+                if(dayIndex === -1) dayIndex = 6; 
+
+                if(dayIndex >= 0 && dayIndex < 7) {
+                    renderEventOnGrid(dayIndex, event.summary || '(No Title)', startTime, endTime);
+                }
+            });
+            document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
+        } catch (err) { 
+            console.error(err); 
+            if (err.status === 401) {
+                localStorage.removeItem('gcal_token');
+                document.getElementById('gcalAuthBtn').innerText = "Sync Google Calendar";
+            }
+        }
+    }
+
+    function renderEventOnGrid(dayIndex, title, start, end) {
+        const dayStartOffsetInMinutes = (5 * 60); 
+        const eventStartInMinutes = (start.getHours() * 60) + start.getMinutes();
+        const eventEndInMinutes = (end.getHours() * 60) + end.getMinutes();
+
+        if (eventStartInMinutes >= dayStartOffsetInMinutes) {
+            const topPos = ((eventStartInMinutes - dayStartOffsetInMinutes) / 60) * 44;
+            const heightSize = ((eventEndInMinutes - eventStartInMinutes) / 60) * 44;
+
+            const targetCol = document.getElementById(`gcal-col-${dayIndex}`);
+            const eventBlock = document.createElement('div');
+            eventBlock.className = 'gcal-event-block';
+            eventBlock.style.top = `${topPos}px`;
+            eventBlock.style.height = `${heightSize - 2}px`;
+            eventBlock.innerText = title;
+            
+            targetCol.appendChild(eventBlock);
+        }
+    }
+
+    async function createNewEventViaClick(dayIndex, slotIndex) {
+        if (gapi.client.getToken() === null) { alert('Please sign in to Google Calendar using the top button first!'); return; }
+        const summaryText = prompt('Enter New Event Title:');
+        if(!summaryText) return;
+
+        const totalMinutesFromCeiling = (5 * 60) + (slotIndex * 30);
+        const startHour = Math.floor(totalMinutesFromCeiling / 60);
+        const startMin = totalMinutesFromCeiling % 60;
+
+        const targetDate = new Date();
+        const currentDay = targetDate.getDay();
+        const distanceToMon = currentDay === 0 ? -6 : 1 - currentDay;
+        targetDate.setDate(targetDate.getDate() + distanceToMon + dayIndex);
+        
+        const startTime = new Date(targetDate.setHours(startHour, startMin, 0, 0));
+        const endTime = new Date(startTime.getTime() + (30 * 60 * 1000));
+
+        const resource = {
+            'summary': summaryText,
+            'start': { 'dateTime': startTime.toISOString() },
+            'end': { 'dateTime': endTime.toISOString() }
+        };
+
+        try {
+            await gapi.client.calendar.events.insert({ 'calendarId': TARGET_CALENDAR_ID, 'resource': resource });
+            listUpcomingEvents();
+        } catch (error) { console.error(error); }
+    }
+
+    function toggleQuickAddModal() { const m = document.getElementById('quickAddForm'); m.style.display = m.style.display==='flex'?'none':'flex'; if(m.style.display==='flex') document.getElementById('itemTextInput').focus(); }
+    function handleInputKeyPress(e) { if(e.key==='Enter'){ e.preventDefault(); executePriorityInjection(); } }
+    function executePriorityInjection() {
+        const day = document.getElementById('targetDaySelect').value; const text = document.getElementById('itemTextInput').value.trim(); if(!text) return;
+        const cell = document.getElementById(`cell-${day}`); const row = document.createElement('div'); row.className = 'item-row';
+        row.innerHTML = `<input type="checkbox" class="luxury-circle-checkbox"><input type="text" class="priority-entry-input" value="${text}"><button class="btn-inline-delete" onclick="this.parentElement.remove()">&times;</button>`;
+        cell.appendChild(row); document.getElementById('itemTextInput').value = ''; toggleQuickAddModal();
+    }
+    function resetEverything() { ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => document.getElementById(`cell-${d}`).innerHTML=''); }
+    function generateCalendar() {
+        const now = new Date(); const year = now.getFullYear(); const month = now.getMonth(); const today = now.getDate();
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('calMonthYear').innerText = `${months[month]} ${year}`; const grid = document.getElementById('calDaysGrid'); grid.innerHTML = '';
+        ['M','T','W','T','F','S','S'].forEach(h => { const el = document.createElement('div'); el.className='day-label'; el.innerText=h; grid.appendChild(el); });
+        let firstDay = new Date(year, month, 1).getDay(); firstDay = firstDay === 0 ? 6 : firstDay - 1; 
+        const totalDays = new Date(year, month + 1, 0).getDate(); const prevTotalDays = new Date(year, month, 0).getDate();
+        for(let i=firstDay-1; i>=0; i--) { const el = document.createElement('div'); el.className='day-number faded'; el.innerText=prevTotalDays-i; grid.appendChild(el); }
+        for(let d=1; d<=totalDays; d++) { const el = document.createElement('div'); el.className='day-number'; el.innerText=d; if(d===today) el.className+=' today-highlight'; grid.appendChild(el); }
+    }
+    generateCalendar();
+</script>
 </body>
 </html>

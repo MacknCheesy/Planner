@@ -327,11 +327,7 @@
     </div>
 </div>
 
-<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
-<script>
-    /* ==========================================================================
+/* ==========================================================================
        CREDENTIAL CONFIGURATION - SECURED BY ACTIONS INJECTION PIPELINE
        ========================================================================== */
     const API_KEY = ''; 
@@ -345,18 +341,75 @@
     let tokenClient;
 
     function gapiLoaded() { gapi.load('client', initializeGapiClient); }
-    async function initializeGapiClient() { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); gapiInited = true; checkAuthStates(); }
-    function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '', }); gisnInited = true; checkAuthStates(); }
-    function checkAuthStates() { if(gapiInited && gisnInited) { document.getElementById('gcalAuthBtn').style.opacity = '1'; } }
+    
+    async function initializeGapiClient() { 
+        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); 
+        gapiInited = true; 
+        checkAuthStates(); 
+    }
+    
+    function gisLoaded() { 
+        tokenClient = google.accounts.oauth2.initTokenClient({ 
+            client_id: CLIENT_ID, 
+            scope: SCOPES, 
+            callback: '', // Will be set dynamically during requests
+        }); 
+        gisnInited = true; 
+        checkAuthStates(); 
+    }
+    
+    // Check if libraries are loaded and try to restore a saved login session
+    function checkAuthStates() { 
+        if (gapiInited && gisnInited) { 
+            document.getElementById('gcalAuthBtn').style.opacity = '1'; 
+            tryToRestoreSession();
+        } 
+    }
+
+    // SILENT RESYNC: This checks if you logged in previously and restores it
+    function tryToRestoreSession() {
+        const savedToken = localStorage.getItem('gcal_token');
+        if (savedToken) {
+            const tokenObj = JSON.parse(savedToken);
+            
+            // Check if the saved token is still valid or needs automatic refresh
+            if (Date.now() < tokenObj.expires_at) {
+                gapi.client.setToken(tokenObj);
+                document.getElementById('gcalAuthBtn').innerText = "Syncing...";
+                listUpcomingEvents();
+            } else {
+                // Token expired, silently request a new one without a prompt modal
+                tokenClient.callback = async (resp) => {
+                    if (resp.error === undefined) {
+                        saveTokenWithExpiry(resp);
+                        listUpcomingEvents();
+                    }
+                };
+                tokenClient.requestAccessToken({ prompt: 'none' });
+            }
+        }
+    }
+
+    // Helper to calculate token expiration and save it to browser memory
+    function saveTokenWithExpiry(tokenResp) {
+        gapi.client.setToken(tokenResp);
+        document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
+        
+        // Google tokens usually last 3600 seconds (1 hour)
+        const expiryTime = Date.now() + (tokenResp.expires_in * 1000);
+        tokenResp.expires_at = expiryTime;
+        
+        localStorage.setItem('gcal_token', JSON.stringify(tokenResp));
+    }
 
     function handleAuthClick() {
         tokenClient.callback = async (resp) => {
             if (resp.error !== undefined) throw (resp);
-            document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
+            saveTokenWithExpiry(resp);
             listUpcomingEvents();
         };
         
-        // Forces Google to show the account chooser menu every click
+        // Only forces account selection if you haven't logged in yet
         if (gapi.client.getToken() === null) {
             tokenClient.requestAccessToken({prompt: 'select_account consent'});
         } else {
@@ -396,7 +449,15 @@
                     renderEventOnGrid(dayIndex, event.summary || '(No Title)', startTime, endTime);
                 }
             });
-        } catch (err) { console.error(err); }
+            document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
+        } catch (err) { 
+            console.error(err); 
+            // If the request fails due to an expired session, clear token and try resetting
+            if (err.status === 401) {
+                localStorage.removeItem('gcal_token');
+                document.getElementById('gcalAuthBtn').innerText = "Sync Google Calendar";
+            }
+        }
     }
 
     function renderEventOnGrid(dayIndex, title, start, end) {

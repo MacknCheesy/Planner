@@ -1,13 +1,9 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Interactive Planner Dashboard</title>
-    
-    <script src="credentials.js"></script>
-
     <style>
         :root {
             --bg-luxury-cream: #fdfaf6;
@@ -23,6 +19,7 @@
             --luminous-today: #df5035;
 
             --gcal-blue: #e89874;
+            --gcal-stone: #61524e; /* Darker tone for Set In Stone items */
             --gcal-line: #e0e0e0;
 
             --mon-h: #f4dcdd; --tue-h: #fcece0; --wed-h: #e3ebd9; 
@@ -108,120 +105,25 @@
         .item-row:hover .btn-inline-delete { opacity: 1; }
         .btn-inline-delete:hover { color: #ff0000; }
 
-        .schedule-outer-wrapper {
-            display: grid;
-            grid-template-columns: 160px 1fr; 
-            gap: 12px;
-            width: 100%;
-            box-sizing: border-box;
-        }
+        .schedule-outer-wrapper { display: grid; grid-template-columns: 160px 1fr; gap: 12px; width: 100%; box-sizing: border-box; }
+        .habits-tracker-card { background-color: #ffffff; border: 1px solid var(--border-elegant); border-radius: 6px; padding: 12px; box-sizing: border-box; }
+        .habit-item { margin-bottom: 10px; }
+        .habit-title { font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
+        .habit-checkboxes { display: flex; gap: 4px; }
+        .habit-dot { width: 12px; height: 12px; border: 1px solid var(--soft-terracotta); border-radius: 50%; cursor: pointer; }
 
-        .habits-tracker-card {
-            background-color: #ffffff;
-            border: 1px solid var(--border-elegant);
-            border-radius: 6px;
-            padding: 12px;
-            box-sizing: border-box;
-        }
-
-        .habit-item {
-            margin-bottom: 10px;
-        }
-
-        .habit-title {
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--text-main);
-        }
-
-        .habit-checkboxes {
-            display: flex;
-            gap: 4px;
-        }
-
-        .habit-dot {
-            width: 12px;
-            height: 12px;
-            border: 1px solid var(--soft-terracotta);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .schedule-grand-framework {
-            display: grid;
-            grid-template-columns: 60px 1fr; 
-            width: 100%;
-            background-color: #ffffff;
-            border: 1px solid var(--border-elegant);
-            border-radius: 6px;
-            overflow-y: auto;
-            max-height: 550px;
-            box-sizing: border-box;
-            position: relative;
-        }
-
-        .time-axis-column {
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--gcal-line);
-            background-color: var(--bg-luxury-cream);
-            user-select: none;
-        }
-
-        .time-axis-stamp {
-            height: 44px; 
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            text-align: right;
-            padding-right: 6px;
-            box-sizing: border-box;
-            line-height: 1;
-            padding-top: 4px;
-        }
-
-        .schedule-matrix-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            position: relative;
-            width: 100%;
-        }
-
-        .day-timeline-column {
-            border-right: 1px solid var(--gcal-line);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            background-image: linear-gradient(var(--gcal-line) 1px, transparent 1px);
-            background-size: 100% 22px; 
-        }
+        .schedule-grand-framework { display: grid; grid-template-columns: 60px 1fr; width: 100%; background-color: #ffffff; border: 1px solid var(--border-elegant); border-radius: 6px; overflow-y: auto; max-height: 550px; box-sizing: border-box; position: relative; }
+        .time-axis-column { display: flex; flex-direction: column; border-right: 1px solid var(--gcal-line); background-color: var(--bg-luxury-cream); user-select: none; }
+        .time-axis-stamp { height: 44px; font-size: 0.65rem; color: var(--text-muted); text-align: right; padding-right: 6px; box-sizing: border-box; line-height: 1; padding-top: 4px; }
+        .schedule-matrix-grid { display: grid; grid-template-columns: repeat(7, 1fr); position: relative; width: 100%; }
+        .day-timeline-column { border-right: 1px solid var(--gcal-line); position: relative; display: flex; flex-direction: column; background-image: linear-gradient(var(--gcal-line) 1px, transparent 1px); background-size: 100% 22px; }
         .day-timeline-column:last-child { border-right: none; }
+        .half-hour-interactive-slot { height: 22px; box-sizing: border-box; cursor: pointer; }
+        .half-hour-interactive-slot:hover { background-color: rgba(214, 107, 55, 0.05); }
 
-        .half-hour-interactive-slot {
-            height: 22px;
-            box-sizing: border-box;
-            cursor: pointer;
-        }
-        .half-hour-interactive-slot:hover {
-            background-color: rgba(214, 107, 55, 0.05);
-        }
-
-        .gcal-event-block {
-            position: absolute;
-            left: 2px;
-            right: 4px;
-            background-color: var(--gcal-blue);
-            color: #ffffff;
-            font-size: 0.7rem;
-            padding: 4px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-weight: 500;
-            border-left: 3px solid var(--header-dark-orange);
-            box-sizing: border-box;
-        }
+        .gcal-event-block { position: absolute; left: 2px; right: 4px; background-color: var(--gcal-blue); color: #ffffff; font-size: 0.7rem; padding: 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; border-left: 3px solid var(--header-dark-orange); box-sizing: border-box; }
+        /* Style variation for locked down events */
+        .gcal-event-block.stone-status { background-color: var(--gcal-stone); border-left-color: #241c1a; font-style: italic; }
     </style>
 </head>
 <body>
@@ -229,9 +131,8 @@
 <div class="master-control-bar">
     <div class="branding-title">Kenzie's Planner</div>
     <div>
-        <button class="btn-luxury-action" id="gcalAuthBtn" onclick="handleAuthClick()">Sync Google Calendar</button>
         <button class="btn-luxury-action" onclick="toggleQuickAddModal()">+ Quick Add Priority</button>
-        <button class="btn-luxury-action" style="color: #b84d43; border-color: #ecc9c5;" onclick="resetEverything()">Clear Row</button>
+        <button class="btn-luxury-action" style="color: #b84d43; border-color: #ecc9c5;" onclick="clearEntireMonthTempItems()">Clear Month (Keep Set In Stone)</button>
     </div>
 </div>
 
@@ -319,147 +220,19 @@
     </div>
 </div>
 
-<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
 <script>
     /* ==========================================================================
-       CREDENTIAL CONFIGURATION - SECURED BY ACTIONS INJECTION PIPELINE
-       API_KEY and CLIENT_ID parameters are automatically pulled from credentials.js
+       GOOGLE SHEETS SYNC SYSTEM - BACKEND DEPLOYMENT CONFIGURATION
        ========================================================================== */
-    const TARGET_CALENDAR_ID = 'kenziezenker@kw.com';
-    
-    const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
-
-    let gapiInited = false;
-    let gisnInited = false; 
-    let tokenClient;
-
-    function gapiLoaded() { gapi.load('client', initializeGapiClient); }
-    
-    async function initializeGapiClient() { 
-        await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); 
-        gapiInited = true; 
-        checkAuthStates(); 
-    }
-    
-    function gisLoaded() { 
-        tokenClient = google.accounts.oauth2.initTokenClient({ 
-            client_id: CLIENT_ID, 
-            scope: SCOPES, 
-            callback: '', 
-        }); 
-        gisnInited = true; 
-        checkAuthStates(); 
-    }
-    
-    function checkAuthStates() { 
-        if (gapiInited && gisnInited) { 
-            document.getElementById('gcalAuthBtn').style.opacity = '1'; 
-            tryToRestoreSession();
-        } 
-    }
-
-    function tryToRestoreSession() {
-        const savedToken = localStorage.getItem('gcal_token');
-        if (savedToken) {
-            const tokenObj = JSON.parse(savedToken);
-            if (Date.now() < tokenObj.expires_at) {
-                gapi.client.setToken(tokenObj);
-                document.getElementById('gcalAuthBtn').innerText = "Syncing...";
-                listUpcomingEvents();
-            }
-        }
-    }
-
-    function saveTokenWithExpiry(tokenResp) {
-        gapi.client.setToken(tokenResp);
-        document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
-        const expiryTime = Date.now() + (tokenResp.expires_in * 1000);
-        tokenResp.expires_at = expiryTime;
-        localStorage.setItem('gcal_token', JSON.stringify(tokenResp));
-    }
-
-    function handleAuthClick() {
-        localStorage.removeItem('gcal_token');
-        gapi.client.setToken(null);
-
-        tokenClient.callback = async (resp) => {
-            if (resp.error !== undefined) throw (resp);
-            saveTokenWithExpiry(resp);
-            listUpcomingEvents();
-        };
-        
-        tokenClient.requestAccessToken({ prompt: 'select_account' });
-    }
-
-    async function listUpcomingEvents() {
-        try {
-            const today = new Date();
-            const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-            startOfWeek.setHours(0,0,0,0);
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-            const response = await gapi.client.calendar.events.list({
-                calendarId: TARGET_CALENDAR_ID,
-                timeMin: startOfWeek.toISOString(),
-                timeMax: endOfWeek.toISOString(),
-                singleEvents: true,
-                orderBy: 'startTime',
-            });
-
-            const events = response.result.items;
-            document.querySelectorAll('.gcal-event-block').forEach(el => el.remove());
-
-            events.forEach(event => {
-                const startStr = event.start.dateTime || event.start.date;
-                const endStr = event.end.dateTime || event.end.date;
-                const startTime = new Date(startStr);
-                const endTime = new Date(endStr);
-                
-                let dayIndex = startTime.getDay() - 1;
-                if(dayIndex === -1) dayIndex = 6; 
-
-                if(dayIndex >= 0 && dayIndex < 7) {
-                    renderEventOnGrid(dayIndex, event.summary || '(No Title)', startTime, endTime);
-                }
-            });
-            document.getElementById('gcalAuthBtn').innerText = "Calendar Synced";
-        } catch (err) { 
-            console.error(err); 
-            if (err.status === 401) {
-                localStorage.removeItem('gcal_token');
-                document.getElementById('gcalAuthBtn').innerText = "Sync Google Calendar";
-            }
-        }
-    }
-
-    function renderEventOnGrid(dayIndex, title, start, end) {
-        const dayStartOffsetInMinutes = (5 * 60); 
-        const eventStartInMinutes = (start.getHours() * 60) + start.getMinutes();
-        const eventEndInMinutes = (end.getHours() * 60) + end.getMinutes();
-
-        if (eventStartInMinutes >= dayStartOffsetInMinutes) {
-            const topPos = ((eventStartInMinutes - dayStartOffsetInMinutes) / 60) * 44;
-            const heightSize = ((eventEndInMinutes - eventStartInMinutes) / 60) * 44;
-
-            const targetCol = document.getElementById(`gcal-col-${dayIndex}`);
-            const eventBlock = document.createElement('div');
-            eventBlock.className = 'gcal-event-block';
-            eventBlock.style.top = `${topPos}px`;
-            eventBlock.style.height = `${heightSize - 2}px`;
-            eventBlock.innerText = title;
-            
-            targetCol.appendChild(eventBlock);
-        }
-    }
+    const GOOGLE_SHEET_WEBAPP_URL = 'https://script.google.com/a/macros/kw.com/s/AKfycby7ZjJ4gNkimWcomQ4Y_F7HTTAjp6ga9MZ1XhQVgSXZJSHeMC4eyyJU-9qslXQI7jZn/exec';
 
     async function createNewEventViaClick(dayIndex, slotIndex) {
-        if (gapi.client.getToken() === null) { alert('Please sign in to Google Calendar using the top button first!'); return; }
         const summaryText = prompt('Enter New Event Title:');
         if(!summaryText) return;
+
+        // Prompt user for Event Status handling
+        const isStone = confirm('Set in Stone? \n\nClick OK for "Set in Stone"\nClick Cancel for "Temporary"');
+        const statusValue = isStone ? 'Set in Stone' : 'Temporary';
 
         const totalMinutesFromCeiling = (5 * 60) + (slotIndex * 30);
         const startHour = Math.floor(totalMinutesFromCeiling / 60);
@@ -473,16 +246,72 @@
         const startTime = new Date(targetDate.setHours(startHour, startMin, 0, 0));
         const endTime = new Date(startTime.getTime() + (30 * 60 * 1000));
 
-        const resource = {
-            'summary': summaryText,
-            'start': { 'dateTime': startTime.toISOString() },
-            'end': { 'dateTime': endTime.toISOString() }
+        const uniqueId = `event_${targetDate.toISOString().split('T')[0]}_d${dayIndex}_s${slotIndex}`;
+
+        const rowData = {
+            action: 'ADD',
+            id: uniqueId,
+            title: summaryText,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            dayIndex: dayIndex,
+            slotIndex: slotIndex,
+            status: statusValue
         };
 
+        renderEventOnGrid(dayIndex, summaryText, startTime, endTime, statusValue);
+        sendToDatabase(rowData);
+    }
+
+    function renderEventOnGrid(dayIndex, title, start, end, status) {
+        const dayStartOffsetInMinutes = (5 * 60); 
+        const eventStartInMinutes = (start.getHours() * 60) + start.getMinutes();
+        const eventEndInMinutes = (end.getHours() * 60) + end.getMinutes();
+
+        if (eventStartInMinutes >= dayStartOffsetInMinutes) {
+            const topPos = ((eventStartInMinutes - dayStartOffsetInMinutes) / 60) * 44;
+            const heightSize = ((eventEndInMinutes - eventStartInMinutes) / 60) * 44;
+
+            const targetCol = document.getElementById(`gcal-col-${dayIndex}`);
+            const eventBlock = document.createElement('div');
+            eventBlock.className = 'gcal-event-block';
+            if(status === 'Set in Stone') {
+                eventBlock.className += ' stone-status';
+                eventBlock.dataset.stone = "true";
+            }
+            eventBlock.style.top = `${topPos}px`;
+            eventBlock.style.height = `${heightSize - 2}px`;
+            eventBlock.innerText = title;
+            
+            targetCol.appendChild(eventBlock);
+        }
+    }
+
+    async function clearEntireMonthTempItems() {
+        if (!confirm('Are you sure you want to clear all temporary items from the database? \n(Set in Stone items will remain)')) return;
+        
+        // Remove temporary items from visual grid UI instantly
+        document.querySelectorAll('.gcal-event-block').forEach(block => {
+            if (block.dataset.stone !== "true") {
+                block.remove();
+            }
+        });
+
+        // Instruct backend script to drop temporary items
+        sendToDatabase({ action: 'CLEAR_TEMP' });
+    }
+
+    async function sendToDatabase(payload) {
         try {
-            await gapi.client.calendar.events.insert({ 'calendarId': TARGET_CALENDAR_ID, 'resource': resource });
-            listUpcomingEvents();
-        } catch (error) { console.error(error); }
+            await fetch(GOOGLE_SHEET_WEBAPP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch (error) {
+            console.error('Database syncing error:', error);
+        }
     }
 
     function toggleQuickAddModal() { const m = document.getElementById('quickAddForm'); m.style.display = m.style.display==='flex'?'none':'flex'; if(m.style.display==='flex') document.getElementById('itemTextInput').focus(); }
@@ -493,7 +322,7 @@
         row.innerHTML = `<input type="checkbox" class="luxury-circle-checkbox"><input type="text" class="priority-entry-input" value="${text}"><button class="btn-inline-delete" onclick="this.parentElement.remove()">&times;</button>`;
         cell.appendChild(row); document.getElementById('itemTextInput').value = ''; toggleQuickAddModal();
     }
-    function resetEverything() { ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => document.getElementById(`cell-${d}`).innerHTML=''); }
+    
     function generateCalendar() {
         const now = new Date(); const year = now.getFullYear(); const month = now.getMonth(); const today = now.getDate();
         const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
